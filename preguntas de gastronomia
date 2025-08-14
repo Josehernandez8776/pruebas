@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adivina el Plato - Juego de Gastronomía</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 50%, #c44569 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 154, 86, 0.2) 0%, transparent 70%);
+            animation: float 20s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .stage {
+            display: none;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stage.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            color: #c44569;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        h2 {
+            font-size: 2em;
+            color: #c44569;
+            margin-bottom: 30px;
+        }
+        
+        .dish-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .dish-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dish-emoji {
+            font-size: 6em;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .dish-name {
+            font-size: 1.8em;
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .dish-hint {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .option-btn {
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .option-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        .option-btn.correct {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            animation: correctPulse 0.6s ease;
+        }
+        
+        .option-btn.incorrect {
+            background: linear-gradient(135deg, #ff6b6b 0%, #c44569 100%);
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .score-item {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .score-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .score-value {
+            font-size: 1.5em;
+            color: #c44569;
+            font-weight: 600;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #c44569 0%, #ff6b6b 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(196, 69, 105, 0.3);
+            margin: 10px;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(196, 69, 105, 0.4);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 15px;
+            background: #ffe0e0;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9a56 0%, #c44569 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .level-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .level-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .level-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .level-title {
+            font-size: 1.5em;
+            color: #c44569;
+            margin-bottom: 10px;
+        }
+        
+        .level-desc {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .food-icons {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .food-icon {
+            position: absolute;
+            font-size: 30px;
+            animation: floatFood 15s linear infinite;
+        }
+        
+        @keyframes floatFood {
+            from {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .result-message {
+            font-size: 1.3em;
+            color: #c44569;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        
+        .dish-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .dish-info h3 {
+            color: #ff6b6b;
+            margin-bottom: 10px;
+        }
+        
+        .dish-info p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .dish-emoji {
+                font-size: 4em;
+            }
+            
+            .options {
+                grid-template-columns: 1fr;
+            }
+            
+            .level-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="food-icons" id="foodIcons"></div>
+    
+    <div class="game-container">
+        <!-- Pantalla de Inicio -->
+        <div class="stage active" id="startScreen">
+            <h1>🍽️ Adivina el Plato 🍽️</h1>
+            <div class="dish-card">
+                <p style="font-size: 1.2em; line-height: 1.8;">
+                    ¡Bienvenido al juego de gastronomía!<br>
+                    Pon a prueba tus conocimientos sobre platos de todo el mundo.<br>
+                    ¿Estás listo para este delicioso desafío?
+                </p>
+            </div>
+            <button class="btn" onclick="showLevelSelection()">Comenzar a Jugar 🎮</button>
+        </div>
+        
+        <!-- Selección de Nivel -->
+        <div class="stage" id="levelSelection">
+            <h2>Selecciona tu Nivel</h2>
+            <div class="level-selector">
+                <div class="level-card" onclick="startGame('easy')">
+                    <div class="level-title">🥗 Nivel Fácil</div>
+                    <div class="level-desc">Platos muy conocidos de todo el mundo</div>
+                </div>
+                <div class="level-card" onclick="startGame('medium')">
+                    <div class="level-title">🍜 Nivel Medio</div>
+                    <div class="level-desc">Platos populares pero menos obvios</div>
+                </div>
+                <div class="level-card" onclick="startGame('hard')">
+                    <div class="level-title">🌶️ Nivel Difícil</div>
+                    <div class="level-desc">Platos exóticos y especialidades locales</div>
+                </div>
+            </div>
+            <button class="btn" onclick="showStartScreen()">Volver</button>
+        </div>
+        
+        <!-- Pantalla de Juego -->
+        <div class="stage" id="gameScreen">
+            <div class="score-board">
+                <div class="score-item">
+                    <div class="score-label">Puntuación</div>
+                    <div class="score-value" id="score">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Pregunta</div>
+                    <div class="score-value"><span id="currentQuestion">1</span>/<span id="totalQuestions">10</span></div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Racha</div>
+                    <div class="score-value" id="streak">0</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 10%"></div>
+            </div>
+            
+            <div class="dish-card">
+                <span class="dish-emoji" id="dishEmoji">🍕</span>
+                <div class="dish-name" id="dishName">Plato Misterioso</div>
+                <div class="dish-hint" id="dishHint">Pista: Este plato es originario de Italia...</div>
+            </div>
+            
+            <div class="options" id="optionsContainer">
+                <!-- Las opciones se generarán dinámicamente -->
+            </div>
+            
+            <div class="dish-info" id="dishInfo" style="display: none;">
+                <h3 id="infoTitle">Información del Plato</h3>
+                <p id="infoText">Aquí aparecerá información sobre el plato...</p>
+            </div>
+        </div>
+        
+        <!-- Pantalla de Resultados -->
+        <div class="stage" id="resultScreen">
+            <h2>¡Juego Terminado!</h2>
+            <div class="score-board">
+                <div class="score-item">
+                    <div class="score-label">Puntuación Final</div>
+                    <div class="score-value" id="finalScore">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Aciertos</div>
+                    <div class="score-value" id="correctAnswers">0</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-label">Mejor Racha</div>
+                    <div class="score-value" id="bestStreak">0</div>
+                </div>
+            </div>
+            
+            <div class="result-message" id="resultMessage"></div>
+            
+            <div style="margin-top: 30px;">
+                <button class="btn" onclick="showLevelSelection()">Jugar de Nuevo</button>
+                <button class="btn" onclick="showStartScreen()">Menú Principal</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Base de datos de platos por nivel
+        const dishes = {
+            easy: [
+                {
+                    emoji: "🍕",
+                    name: "Pizza",
+                    hint: "Originario de Italia, con base de pan y queso",
+                    options: ["Italia", "Francia", "España", "México"],
+                    correct: 0,
+                    info: "La pizza es un plato tradicional de la cocina napolitana, hecho con pan plano horneado y típicamente cubierto con salsa de tomate y queso."
+                },
+                {
+                    emoji: "🍔",
+                    name: "Hamburguesa",
+                    hint: "Sándwich de carne con pan redondo",
+                    options: ["Alemania", "Estados Unidos", "Inglaterra", "Canadá"],
+                    correct: 1,
+                    info: "Aunque sus orígenes son europeos, la hamburguesa moderna se popularizó en Estados Unidos, convirtiéndose en un ícono de la comida rápida."
+                },
+                {
+                    emoji: "🌮",
+                    name: "Taco",
+                    hint: "Tortilla de maíz con relleno",
+                    options: ["México", "España", "Argentina", "Colombia"],
+                    correct: 0,
+                    info: "El taco es un plato tradicional mexicano que consiste en una tortilla de maíz doblada que puede contener diversos rellenos."
+                },
+                {
+                    emoji: "🍣",
+                    name: "Sushi",
+                    hint: "Pescado crudo con arroz",
+                    options: ["Japón", "China", "Corea", "Tailandia"],
+                    correct: 0,
+                    info: "El sushi es un plato japonés que consiste en arroz aderezado con vinagre, combinado con otros ingredientes como pescado crudo o mariscos."
+                },
+                {
+                    emoji: "🥐",
+                    name: "Croissant",
+                    hint: "Pan hojaldrado en forma de media luna",
+                    options: ["Francia", "Austria", "Bélgica", "Suiza"],
+                    correct: 0,
+                    info: "Aunque asociado con Francia, el croissant tiene origen austriaco. Se popularizó en Francia y se convirtió en un símbolo de la pastelería francesa."
+                },
+                {
+                    emoji: "🍝",
+                    name: "Pasta",
+                    hint: "Masa de trigo en diversas formas",
+                    options: ["Italia", "Grecia", "Turquía", "Egipto"],
+                    correct: 0,
+                    info: "La pasta es un alimento básico de la cocina italiana, hecho con una masa de trigo que se corta en diversas formas y se sirve con salsas."
+                },
+                {
+                    emoji: "🥗",
+                    name: "Ensalada César",
+                    hint: "Ensalada con pollo, crutones y queso",
+                    options: ["México", "Estados Unidos", "Italia", "Francia"],
+                    correct: 0,
+                    info: "Contrario a lo que se cree, la Ensalada César fue inventada en México por un chef italiano-estadounidense llamado Caesar Cardini."
+                },
+                {
+                    emoji: "🍜",
+                    name: "Ramen",
+                    hint: "Sopa de fideos con caldo",
+                    options: ["Japón", "China", "Vietnam", "Corea"],
+                    correct: 0,
+                    info: "El ramen es un plato japonés de fideos servidos en caldo, con toppings como carne, vegetales y huevo. Aunque de origen chino, se adaptó en Japón."
+                },
+                {
+                    emoji: "🥘",
+                    name: "Paella",
+                    hint: "Arroz con azafrán y mariscos",
+                    options: ["España", "Portugal", "Italia", "Grecia"],
+                    correct: 0,
+                    info: "La paella es un plato de arroz originario de Valencia, España. Se cocina en una paellera y tradicionalmente incluye azafrán y diversos ingredientes."
+                },
+                {
+                    emoji: "🌭",
+                    name: "Perrito Caliente",
+                    hint: "Salchicha en pan largo",
+                    options: ["Alemania", "Estados Unidos", "Polonia", "Austria"],
+                    correct: 1,
+                    info: "Aunque la salchicha es alemana, el perrito caliente como lo conocemos hoy (salchicha en pan) se popularizó en Estados Unidos."
+                }
+            ],
+            medium: [
+                {
+                    emoji: "🥟",
+                    name: "Dumpling",
+                    hint: "Masa rellena cocida al vapor",
+                    options: ["China", "Japón", "Corea", "Tailandia"],
+                    correct: 0,
+                    info: "Los dumplings son un plato común en varias cocinas asiáticas, pero los más famosos son los chinos, que pueden ser fritos, al vapor o hervidos."
+                },
+                {
+                    emoji: "🍛",
+                    name: "Curry",
+                    hint: "Plato especiado con salsa",
+                    options: ["India", "Tailandia", "Japón", "Todos los anteriores"],
+                    correct: 3,
+                    info: "El curry es un plato que existe en múltiples variantes across Asia. Cada país tiene su propia versión: el curry indio, tailandés y japonés son muy diferentes."
+                },
+                {
+                    emoji: "🥙",
+                    name: "Shawarma",
+                    hint: "Carne asada en pan pita",
+                    options: ["Líbano", "Turquía", "Grecia", "México"],
+                    correct: 0,
+                    info: "El shawarma es originario del Medio Oriente, específicamente del Líbano. Consiste en carne asada en un vertical spit servida en pan pita."
+                },
+                {
+                    emoji: "🍲",
+                    name: "Pho",
+                    hint: "Sopa de fideos vietnamita",
+                    options: ["Vietnam", "Tailandia", "China", "Corea"],
+                    correct: 0,
+                    info: "El pho es una sopa vietnamita hecha con fideos de arroz, caldo de carne, hierbas y carne. Es considerado el plato nacional de Vietnam."
+                },
+                {
+                    emoji: "🥠",
+                    name: "Fortune Cookie",
+                    hint: "Galleta con mensaje adentro",
+                    options: ["Estados Unidos", "China", "Japón", "Corea"],
+                    correct: 0,
+                    info: "Contrario a la creencia popular, las fortune cookies fueron inventadas en Estados Unidos, no en China. Son un plato chino-estadounidense."
+                },
+                {
+                    emoji: "🍱",
+                    name: "Bento",
+                    hint: "Caja de comida japonesa",
+                    options: ["Japón", "China", "Corea", "Tailandia"],
+                    correct: 0,
+                    info: "El bento es una comida japonesa empacada en una caja, típicamente conteniendo arroz, pescado o carne, y vegetales cocidos."
+                },
+                {
+                    emoji: "🥘",
+                    name: "Tajine",
+                    hint: "Guiso cocinado en olla especial",
+                    options: "Marruecos",
+                    options: ["Marruecos", "Túnez", "Argelia", "Egipto"],
+                    correct: 0,
+                    info: "El tajine es un plato tradicional marroquí cocinado lentamente en una olla de barro con forma cónica del mismo nombre."
+                },
+                {
+                    emoji: "🥞",
+                    name: "Crepes",
+                    hint: "Panqueque fino y delgado",
+                    options: ["Francia", "Bélgica", "Suiza", "Países Bajos"],
+                    correct: 0,
+                    info: "Los crepes son originarios de Francia, específicamente de la región de Bretaña. Pueden ser dulces o salados y son muy versátiles."
+                },
+                {
+                    emoji: "🍢",
+                    name: "Satay",
+                    hint: "Brochetas de carne con salsa",
+                    options: ["Indonesia", "Tailandia", "Malasia", "Todos los anteriores"],
+                    correct: 3,
+                    info: "El satay es popular en varios países del sudeste asiático. Consiste en brochetas de carne a la parrilla servidas con salsa de maní."
+                },
+                {
+                    emoji: "🍤",
+                    name: "Tempura",
+                    hint: "Mariscos fritos en masa ligera",
+                    options: ["Japón", "China", "Corea", "Portugal"],
+                    correct: 0,
+                    info: "Aunque asociado con Japón, la tempura fue introducida por misioneros portugueses en el siglo XVI. Los japoneses perfeccionaron la técnica."
+                }
+            ],
+            hard: [
+                {
+                    emoji: "🥣",
+                    name: "Haggis",
+                    hint: "Plato escocés con vísceras",
+                    options: ["Escocia", "Irlanda", "Gales", "Inglaterra"],
+                    correct: 0,
+                    info: "El haggis es el plato nacional de Escocia. Consiste en vísceras de oveja mezcladas con avena, especias y grasa, cocidas en el estómago del animal."
+                },
+                {
+                    emoji: "🍯",
+                    name: "Miel de Manuka",
+                    hint: "Miel especial de Nueva Zelanda",
+                    options: ["Nueva Zelanda", "Australia", "Fiyi", "Hawái"],
+                    correct: 0,
+                    info: "La miel de manuka es producida en Nueva Zelanda a partir del néctar del árbol de manuka. Es famosa por sus propiedades antibacterianas."
+                },
+                {
+                    emoji: "🍄",
+                    name: "Matsutake",
+                    hint: "Hongo japonés muy valorado",
+                    options: ["Japón", "China", "Corea", "Tailandia"],
+                    correct: 0,
+                    info: "El matsutake es un hongo altamente valorado en la cocina japonesa por su aroma distintivo. Puede costar cientos de dólares por kilogramo."
+                },
+                {
+                    emoji: "🐙",
+                    name: "Pulpo a la Gallega",
+                    hint: "Pulpo cocido con pimentón",
+                    options: ["España", "Portugal", "Italia", "Grecia"],
+                    correct: 0,
+                    info: "El pulpo a la gallega es un plato típico de Galicia, España. Consiste en pulpo cocido cortado en rodajas y espolvoreado con pimentón y sal gorda."
+                },
+                {
+                    emoji: "🥫",
+                    name: "Vegemite",
+                    hint: "Pasta para untar australiana",
+                    options: ["Australia", "Nueva Zelanda", "Reino Unido", "Sudáfrica"],
+                    correct: 0,
+                    info: "Vegemite es una pasta para untar australiana hecha de extracto de levadura. Es un ícono cultural en Australia, aunque su sabor es muy fuerte y salado."
+                },
+                {
+                    emoji: "🍈",
+                    name: "Durian",
+                    hint: "Fruta conocida por su olor fuerte",
+                    options: ["Sudeste Asiático", "América del Sur", "África", "Oceanía"],
+                    correct: 0,
+                    info: "El durian es conocido como el 'rey de las frutas' en el sudeste asiático. Es famoso por su olor penetrante que a mucha gente le resulta desagradable."
+                },
+                {
+                    emoji: "🦐",
+                    name: "Balut",
+                    hint: "Huevo de pato embrionado",
+                    options: ["Filipinas", "Tailandia", "Vietnam", "Indonesia"],
+                    correct: 0,
+                    info: "El balut es un plato filipino que consiste en un huevo de pato fertilizado que se incubó entre 14 y 21 días. Es considerado una delicia local."
+                },
+                {
+                    emoji: "🍖",
+                    name: "Airag",
+                    hint: "Bebida fermentada de caballo",
+                    options: ["Mongolia", "Kazajistán", "Kirguistán", "Todos los anteriores"],
+                    correct: 3,
+                    info: "El airag (o kumis) es una bebida láctea fermentada tradicional de las culturas nómadas de Asia Central, hecha con leche de yegua."
+                },
+                {
+                    emoji: "🍬",
+                    name: "Sal de Licor",
+                    hint: "Dulce salado de los Países Bajos",
+                    options: ["Países Bajos", "Bélgica", "Alemania", "Dinamarca"],
+                    correct: 0,
+                    info: "La sal de licor (drop) es un dulce típico de los Países Bajos. Tiene un sabor distintivo a regaliz y sal, y existen muchas variedades."
+                },
+                {
+                    emoji: "🍄",
+                    name: "Trufa",
+                    hint: "Hongo subterráneo muy valioso",
+                    options: ["Francia", "Italia", "España", "Todos los anteriores"],
+                    correct: 3,
+                    info: "Las trufas son hongos subterráneos muy valorados en la gastronomía europea. Las más famosas son la trufa negra (Francia) y la trufa blanca (Italia)."
+                }
+            ]
+        };
+        
+        // Variables del juego
+        let currentLevel = '';
+        let currentDishes = [];
+        let currentDishIndex = 0;
+        let score = 0;
+        let correctAnswers = 0;
+        let streak = 0;
+        let bestStreak = 0;
+        let answered = false;
+        
+        // Crear íconos de comida flotantes
+        function createFoodIcons() {
+            const icons = ['🍕', '🍔', '🍟', '🌮', '🍣', '🥗', '🍜', '🍱', '🥘', '🍤', '🍩', '🍰'];
+            const container = document.getElementById('foodIcons');
+            
+            setInterval(() => {
+                const icon = document.createElement('div');
+                icon.className = 'food-icon';
+                icon.innerHTML = icons[Math.floor(Math.random() * icons.length)];
+                icon.style.left = Math.random() * 100 + '%';
+                icon.style.animationDuration = Math.random() * 10 + 10 + 's';
+                icon.style.fontSize = Math.random() * 20 + 20 + 'px';
+                container.appendChild(icon);
+                
+                setTimeout(() => {
+                    icon.remove();
+                }, 15000);
+            }, 2000);
+        }
+        
+        // Mostrar pantalla de inicio
+        function showStartScreen() {
+            hideAllStages();
+            document.getElementById('startScreen').classList.add('active');
+        }
+        
+        // Mostrar selección de nivel
+        function showLevelSelection() {
+            hideAllStages();
+            document.getElementById('levelSelection').classList.add('active');
+        }
+        
+        // Iniciar juego
+        function startGame(level) {
+            currentLevel = level;
+            currentDishes = [...dishes[level]];
+            currentDishIndex = 0;
+            score = 0;
+            correctAnswers = 0;
+            streak = 0;
+            bestStreak = 0;
+            
+            // Mezclar platos
+            currentDishes.sort(() => Math.random() - 0.5);
+            
+            hideAllStages();
+            document.getElementById('gameScreen').classList.add('active');
+            
+            updateUI();
+            showDish();
+        }
+        
+        // Ocultar todas las pantallas
+        function hideAllStages() {
+            document.querySelectorAll('.stage').forEach(stage => {
+                stage.classList.remove('active');
+            });
+        }
+        
+        // Actualizar UI
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('currentQuestion').textContent = currentDishIndex + 1;
+            document.getElementById('totalQuestions').textContent = currentDishes.length;
+            document.getElementById('streak').textContent = streak;
+            
+            const progress = ((currentDishIndex + 1) / currentDishes.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        // Mostrar plato actual
+        function showDish() {
+            if (currentDishIndex >= currentDishes.length) {
+                showResults();
+                return;
+            }
+            
+            answered = false;
+            const dish = currentDishes[currentDishIndex];
+            
+            document.getElementById('dishEmoji').textContent = dish.emoji;
+            document.getElementById('dishName').textContent = '¿De dónde es este plato?';
+            document.getElementById('dishHint').textContent = dish.hint;
+            
+            // Crear opciones
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            // Mezclar opciones
+            const shuffledOptions = [...dish.options];
+            shuffledOptions.sort(() => Math.random() - 0.5);
+            
+            shuffledOptions.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option);
+                optionsContainer.appendChild(button);
+            });
+            
+            // Ocultar información del plato
+            document.getElementById('dishInfo').style.display = 'none';
+        }
+        
+        // Verificar respuesta
+        function checkAnswer(selectedOption) {
+            if (answered) return;
+            answered = true;
+            
+            const dish = currentDishes[currentDishIndex];
+            const correctOption = dish.options[dish.correct];
+            const buttons = document.querySelectorAll('.option-btn');
+            
+            buttons.forEach(button => {
+                if (button.textContent === correctOption) {
+                    button.classList.add('correct');
+                } else if (button.textContent === selectedOption && selectedOption !== correctOption) {
+                    button.classList.add('incorrect');
+                }
+                button.disabled = true;
+            });
+            
+            if (selectedOption === correctOption) {
+                correctAnswers++;
+                streak++;
+                if (streak > bestStreak) bestStreak = streak;
+                
+                // Calcular puntos según nivel y racha
+                let points = 10;
+                if (currentLevel === 'medium') points = 20;
+                if (currentLevel === 'hard') points = 30;
+                
+                // Bonificación por racha
+                if (streak >= 3) points += streak * 5;
+                
+                score += points;
+            } else {
+                streak = 0;
+            }
+            
+            updateUI();
+            
+            // Mostrar información del plato
+            setTimeout(() => {
+                document.getElementById('dishInfo').style.display = 'block';
+                document.getElementById('infoTitle').textContent = dish.name;
+                document.getElementById('infoText').textContent = dish.info;
+                document.getElementById('dishName').textContent = dish.name;
+            }, 1000);
+            
+            // Siguiente plato
+            setTimeout(() => {
+                currentDishIndex++;
+                showDish();
+            }, 4000);
+        }
+        
+        // Mostrar resultados
+        function showResults() {
+            hideAllStages();
+            document.getElementById('resultScreen').classList.add('active');
+            
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('correctAnswers').textContent = correctAnswers + '/' + currentDishes.length;
+            document.getElementById('bestStreak').textContent = bestStreak;
+            
+            // Mensaje según rendimiento
+            let message = '';
+            const percentage = (correctAnswers / currentDishes.length) * 100;
+            
+            if (percentage >= 90) {
+                message = '¡Eres un verdadero experto en gastronomía! 🌟<br>Tu conocimiento culinario es impresionante.';
+            } else if (percentage >= 70) {
+                message = '¡Muy buen trabajo! 👏<br>Tienes un gran conocimiento sobre la comida mundial.';
+            } else if (percentage >= 50) {
+                message = '¡Buen intento! 😊<br>Sigue explorando el mundo a través de su comida.';
+            } else {
+                message = '¡Sigue practicando! 💪<br>El mundo de la gastronomía es fascinante y siempre hay algo nuevo que aprender.';
+            }
+            
+            document.getElementById('resultMessage').innerHTML = message;
+        }
+        
+        // Iniciar
+        createFoodIcons();
+    </script>
+</body>
+</html>
